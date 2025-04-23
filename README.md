@@ -1,14 +1,20 @@
 # Flyer-1
 Customized RISC, 24-bit simulated CPU, heavily inspired by use of computers in aerospace and defense application.
 
-The Flyer-1 computer sports a 24-bit wide data bus, capable of computation in both integer and fixed-point format. With an address bus identical in size, a total memory of 50.3MB (16.7MB × 3B) can be allocated for both data and instructions. Basic arithmetic (add, subtract, multiply, divide) and bitwise logic operations (AND, OR, XOR, NOT, compare, shift, roll) are implemented inside the ALU as stock circuit components inside Logisim. Available peripheral components include 8 digital ports that can be connected to I/O devices such as TTY (Teletypewriter), along with 4 analog ports (simulated as digital, because Logisim can't bother to add analog functionality... sigh).
+The Flyer-1 computer sports a 24-bit wide data bus, capable of computation in both integer and fixed-point format. With an address bus identical in size, a total memory of 50.3MB (16.7MB × 3B) can be allocated for both data and instructions. Basic arithmetic and bitwise logic operations are implemented inside the ALU with Logisim's stock circuit components. Available peripheral components include 8 digital ports that can be connected to I/O devices such as TTY (Teletypewriter), along with 4 analog ports (simulated as digital, because Logisim can't bother to add analog functionality... sigh).
 
-Hardware and software design of Flyer-1 takes inspiration from RISC and CISC processors from 1960s up to 1990s, being the MOS 6502 (Commodore 64), Intel 8086 (Tandy 1000), Motorola 68000 (Airbus Flight Computers) and D-37C (Minuteman II ICBM Guidance Computer). If that last bit sounds concerning, _don't worry; it's up there on Wikipedia and Internet Archive, and the docs says **DECLASSIFIED**_.
+Hardware and software design of Flyer-1 takes inspiration from RISC (_Reduced Instruction Set Computer_) and CISC (_Complex Instruction Set Computer_) processors from 1960s up to 1990s, being the MOS 6502 (Commodore 64), Intel 8086 (Tandy 1000), Motorola 68000 (Airbus Flight Computers) and D-37C (Minuteman II ICBM Guidance Computer). If that last bit sounds concerning, _don't worry; it's up there on Wikipedia and Internet Archive, and the docs says **DECLASSIFIED**_. As far as the author concerns, this computer's classification between RISC and CISC is somewhat blurry, and the author would be glad to consult with experts on this matter.
+
+This README is barely enough to serve as an entire technical documentation; it's merely a quick introduction to the system and practices of programming it.
 
 ## Instruction Set Architecture
+
 ![Flyer 1 - 01](https://github.com/user-attachments/assets/2d20c872-8f3d-4c9e-b0fa-8e2ab72c9dd0)
 
+_Figure 1. Flyer-1 computer general circuitry._
+
 ### Processor Registers
+
 ![Flyer 1 - 02](https://github.com/user-attachments/assets/f3fea21f-3d84-4767-9246-711c09332730)
 
 ### Data Formats
@@ -26,11 +32,48 @@ Hardware and software design of Flyer-1 takes inspiration from RISC and CISC pro
 ![Flyer 1 - 05](https://github.com/user-attachments/assets/7931b4cf-fec9-4b45-aa46-561f5077ab8f)
 
 ### Major Components
+
 #### 1. Arithmetic Logic Unit (ALU)
+
+The ALU is where every mathematical and bitwise logic operations are commenced within the processor. Instructions include basic math (add, subtract, multiply, divide) and bitwise logic (AND, OR, XOR, NOT, comparison, barrel shift, cyclic shift/rotate). The 'A' input is connected to general data bus via TX (temporary) register, that retrieves the contents of AX (accumulator) for instructions involving data inside AX. On the other hand, 'B' input is directly connected to general data bus, enabling shorter execution time and simpler circuitry. The two outputs of ALU being the 'S' (operation results) and 'F' (flags), each connected to AX and FLAG registers.
+
+Inside the ALU are multiple circuits dedicated for specific operations. Addition and subtraction utilize a full adder-subtractor (FAS) unit, capable of subtraction by complimenting 'B' input and turning the carry input HIGH, while the reverse applies for addition. Multiplication and division operation each utilize stock circuit components already simulated in Logisim. Bitwise logic operations saw the use of commonly-found logic gates, barrel and cyclic shifters, and comparator circuits. The outputs for all ALU instructions, except comparison (CMP), is channeled through three-state bus buffers, controlled by instruction decoders.
+
+Per v1.0 (24/4/2025), the conversion circuit between integer and fixed-point numbers are still being developed.
+
+![Flyer 1 - 06](https://github.com/user-attachments/assets/da35a84a-98eb-4b8b-a3c2-98d0901ff65b)
+
+_Figure 2. Arithmetic Logic Unit (ALU) internal circuitry._
+
 #### 2. Control Unit (CU)
+
+Control unit determines which and when do counters increment/decrement, registers/memory would be read from or written into, which peripheral ports would be selected and where data flows inside the processor. This operation is accomplished by the use of combinational logic gates, similar to what is used in RISC processors. This approach is selected on the basis of convenience in configuring the logic wiring, as opposed to using ROM and determining its contents (control words) that is known as micro-coding, and are commonly found in CISC processors.
+
+Inputs required to determine the control words are first most-significant 9 bits of opcode word (B<sub>23-15</sub>) and 3-bit clock cycle counter, along with ALU flags stored in FLAG register. The latter is used to determine whether or not conditional branching instructions concurs with status/flags after previous instructions. The FLAG input would pass through a flag matching unit (top left corner, array of AND gates connected to one OR gate). If the opcode bits of B<sub>18-15</sub> matches those with flags coming in, then corresponding AND gate would turn HIGH, and a conditional branching instruction can be executed.
+
+The 3-bit clock cycles and opcode bits B<sub>23-19</sub> each passes through decoders. If a control wire needs to turn HIGH at clock cycle X (0..7) and when instruction Y (00..1F) is inputted, then a corresponding AND gate connects to both the decoded X and Y, where the gate's output is then channeled through OR gates for that control wire. Said OR gate also takes input from numerous similar AND gate corresponding to other instruction and clock cycles. The AND gate that correlates to conditional branching instructions have 3 inputs instead of normal 2, connected to the outputs of flag matching unit.
+
+Another possible way to implement said combinational logic is through the use of PLA (Programmable Logic Array) or FPGA (Field-Programmable Gate Array), where these options are also considered for future developments of the Flyer-1 computer.
+
+![Flyer 1 - 07](https://github.com/user-attachments/assets/fdeb1c01-cd4e-44a9-a7b3-fcf45df6658b)
+
+_Figure 3. Control Unit (CU) internal circuitry._
+
+Clock cycle counter, also commonly known as digital frequency divider, is comprised of a counter connected to clock (square wave input) and D-latch circuits. Whether the reference for clock cycle change is a rising-edge or falling-edge wave segment, it counts and outputs an n-bit value of how many clock cycles have passed (0..(2^n)-1). The latching circuit is connected to 'HALT' and 'RESET' inputs, where 'HALT' would have the effect of stopping further clock cycle counting when a HALT instruction is evaluated, and 'RESET' resets said stopping condition by manual inputs (e.g., a push button). 
+
+![Flyer 1 - 08](https://github.com/user-attachments/assets/21f98a7e-4fde-4f02-9fb9-ae0a10782942)
+
+_Figure 4. Digital frequency divider / clock cycle counter unit._
+
 #### 3. Peripheral Unit (PU)
+
+Peripheral unit consists of 8 digital ports (PD) and 4 analog ports (PA), each with its respective gate selector and data buffers.
+
+![Flyer 1 - 09](https://github.com/user-attachments/assets/df66f556-6937-4c7a-9bd0-11e597a8d331)
+
 #### 4. Random Access Memory (RAM)
-### Instruction List and Encoding
+### Instruction Set
+### Control Word Table
 
 ## Assembly Language
 ### General Overview
@@ -38,5 +81,6 @@ Hardware and software design of Flyer-1 takes inspiration from RISC and CISC pro
 
 ## How Do I Make It Run?
 ### Assembler Program: Making It Run
+### Processor Emulator: Beyond Logic Circuitry
 
 ## Future Plans
