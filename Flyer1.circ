@@ -1414,10 +1414,6 @@
       <a name="color" val="#0053f0"/>
       <a name="decimalPoint" val="false"/>
     </comp>
-    <comp lib="8" loc="(1260,920)" name="Text">
-      <a name="halign" val="left"/>
-      <a name="text" val="19/04/2024: HARDWARE TEST MASIH MENEMUKAN ISSUE DI SMEUA INSTRUKSI MATH (80XXXX - FFXXXXX). "/>
-    </comp>
     <comp lib="8" loc="(1700,540)" name="Text">
       <a name="halign" val="left"/>
       <a name="text" val="INSTRUCTION REGISTER"/>
