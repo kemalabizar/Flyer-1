@@ -3,7 +3,7 @@ Customized RISC, 24-bit simulated CPU, heavily inspired by use of computers in a
 
 The Flyer-1 computer sports a 24-bit wide data bus, capable of computation in both integer and fixed-point format. With an address bus identical in size, a total memory of 50.3MB (16.7MB × 3B) can be allocated for both data and instructions. Basic arithmetic and bitwise logic operations are implemented inside the ALU with Logisim's stock circuit components. Available peripheral components include 8 digital ports that can be connected to I/O devices such as TTY (Teletypewriter), along with 4 analog ports (simulated as digital, because Logisim can't bother to add analog functionality... sigh).
 
-Hardware and software design of Flyer-1 takes inspiration from RISC (_Reduced Instruction Set Computer_) and CISC (_Complex Instruction Set Computer_) processors from 1960s up to 1990s, being the MOS 6502 (Commodore 64), Intel 8086 (Tandy 1000), Motorola 68000 (Airbus Flight Computers) and D-37C (Minuteman II ICBM Guidance Computer). If that last bit sounds concerning, _don't worry; it's up there on Wikipedia and Internet Archive, and the docs says **DECLASSIFIED**_. As far as the author concerns, this computer's classification between RISC and CISC is somewhat blurry, and the author would be glad to consult with experts on this matter.
+Hardware and software design of Flyer-1 takes inspiration from RISC (_Reduced Instruction Set Computer_) and CISC (_Complex Instruction Set Computer_) processors from 1960s up to 1990s, being the MOS 6502 (Commodore 64), Intel 8086 (Tandy 1000), Motorola 68000 and Intel i386 (Airbus Flight Computers). As far as the author concerns, this computer's classification between RISC and CISC is somewhat blurry, and the author would be glad to consult with experts on this matter.
 
 This README is barely enough to serve as an entire technical documentation; it's merely a quick introduction to the system and practices of programming it.
 
@@ -71,9 +71,28 @@ Peripheral unit consists of 8 digital ports (PD) and 4 analog ports (PA), each w
 
 ![Flyer 1 - 09](https://github.com/user-attachments/assets/df66f556-6937-4c7a-9bd0-11e597a8d331)
 
+_Figure 5. Peripheral unit with 8 digital ports and 4 analog ports._
+
 #### 4. Random Access Memory (RAM)
+
+The main memory for this computer runs on 24-bit wide data and address bus, giving a total of 16.777.216 memory locations; considering that 24-bit equals to 3 bytes, this gives the total memory capability of 50.3 MByte. The memory is further divided into five segments based on their use, as shown in Figure 6 below. The stack can be allocated to store variables in case of mathematical operations that require PEMDAS rule when executed, or other conditions that may necessitate priority-based memory. Reserve memory can be allocated to store peripheral data or programs etc.
+
+![Flyer 1 - 10](https://github.com/user-attachments/assets/b77fe7a9-ff55-495d-8085-14e28f61f2af)
+
+_Figure 6. Memory segmentation chart for Flyer-1 Computer._
+
 ### Instruction Set
-### Control Word Table
+
+Below are listed the total 43 instructions valid for programming the Flyer-1 Computer. The list below only contains the basic addressing modes without any variable or loop name whatsoever; for that segment, please refer to Assembly Language section of this README.
+_CAUTION: Illegal opcodes may have the risk of stalling the device, corrupting stored data or any other unintended consequences. USE UNDER YOUR OWN RISK._
+
+### Control Code Table
+
+Execution of instructions are divided into clock cycle counts, which differs between one instruction and the other. This clock cycle count is provided by 3-bit (0..7) digital frequency divider unit, always counting upwards and resets at max value.
+
+Each components within the computer has its own control codes, that dictates whether it must store (hold) or output (open) data flow from and into buses, when counters must count up or down and output their values, when to read from or write into RAM etc. In total, there are 26 control wires.
+
+
 
 ## Assembly Language
 ### General Overview
@@ -84,3 +103,6 @@ Peripheral unit consists of 8 digital ports (PD) and 4 analog ports (PA), each w
 ### Processor Emulator: Beyond Logic Circuitry
 
 ## Future Plans
+Per this release (v1.0), the foreseeable developments of Flyer-1 would involve some of the topics listed below.
+1. Development of a general-purpose OS (operating system) similar to computers between 1980-1990, e.g. MS-DOS, Unix, Commodore64. May also try to develop graphical OS, similar to Windows 1.0 or Windows 95.
+2. Physical (microprocessor package) circuit based on the Flyer-1's architecture; Said microprocessor chip are planned for integration into a single-board computer (currently also under feasibility study), akin to PE6502 or Gigatron TTL.
