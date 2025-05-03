@@ -94,9 +94,51 @@ _Table 3. Memory segmentation chart for Flyer-1 computer._
 Below are listed the total 43 instructions valid for programming the Flyer-1 computer. The list below only contains the basic addressing modes without any variable or loop name whatsoever; for that segment, please refer to Assembly Language section of this README.
 _CAUTION: Illegal opcodes may have the risk of stalling the device, corrupting stored data or any other unintended consequences. USE UNDER YOUR OWN RISK._
 
-![Flyer 1 - 12](https://github.com/user-attachments/assets/34166b05-9ff0-48ff-bb69-ef957f9481c1)
-
-_Table 4. Instruction set table for Flyer-1 computer._
+|**Instruction**|**Action**|**Description**|
+|-|-|-|
+|`lda $addr`|`AX = [$addr]`|Load from location `$addr` into accumulator|
+|`ldi #data`|`AX = #data`|Load immediate value `#data` into accumulator|
+|`sta $addr`|`[$addr] = AX`|Store accumulator into location `$addr`|
+|`sti $addr,#data`|`[$addr] = #data`|Store immediate value `#data` into `$addr`|
+|`trx $adr1,$adr2`|`[$adr1] = [$adr2]`|Transfer addressed from `$adr1` to `$adr2`|
+|`jmp $addr`|`PC = $addr`|Jump unconditional to next instruction at `$addr`|
+|`jcb $addr`|`PC = $addr`|Jump if carry or borrow to `$addr`|
+|`jnc $addr`|`PC = $addr`|Jump if not carry or borrow to `$addr`|
+|`jal $addr`|`PC = $addr`|Jump if A>B to `$addr`|
+|`jna $addr`|`PC = $addr`|Jump if not A>B to `$addr`|
+|`jeq $addr`|`PC = $addr`|Jump if A=B to `$addr`|
+|`jnq $addr`|`PC = $addr`|Jump if not A=B to `$addr`|
+|`jzr $addr`|`PC = $addr`|Jump if A=0 to `$addr`|
+|`jnz $addr`|`PC = $addr`|Jump if not A=0 to `$addr`|
+|`jng $addr`|`PC = $addr`|Jump if A negative to `$addr`|
+|`jps $addr`|`PC = $addr`|Jump if A positive to `$addr`|
+|`jpe $addr`|`PC = $addr`|Jump if A parity even to `$addr`|
+|`jpo $addr`|`PC = $addr`|Jump if A parity odd to `$addr`|
+|`clf`|`FLAG = 0`|Clear the flag register|
+|`dip $addr,port_D`|`[$addr] <- port_D`|Digital input from port `port_D` to `$addr`|
+|`dop $addr,port_D`|`port_D <- [$addr]`|Digital output to port `port_D` from `$addr`|
+|`aip $addr,port_A`|`[$addr] <- port_A`|Analog input from port `port_A` to `$addr`|
+|`aop $addr,port_A`|`port_A <- [$addr]`|Analog output to port `port_A` from `$addr`|
+|`pst $addr`|`[$addr] -> stack, sp++`|Push from `$addr` to stack|
+|`pop $addr`|`stack -> [$addr], sp--`|Pop from stack to `addr`|
+|`nop`| |No operation|
+|`hlt`| |Halt until reset|
+|`add $adr1,$adr2`|`ax = [$adr1]+[$adr2]`|Add contents of address `$adr1` and `$adr2`|
+|`sub $adr1,$adr2`|`ax = [$adr1]-[$adr2]`|Subtract contents of address `$adr1` and `$adr2`|
+|`mul $adr1,$adr2`|`ax = [$adr1]*[$adr2]`|Multiply contents of address `$adr1` and `$adr2`|
+|`div $adr1,$adr2`|`ax = [$adr1]/[$adr2]`|Divide contents of address `$adr1` and `$adr2`|
+|`ana $addr`|`ax = ax & [$addr]`|Logical AND accumulator with contents of `$addr`|
+|`ora $addr`|`ax = ax ∨ [$addr]`|Logical OR accumulator with contents of `$addr`|
+|`xra $addr`|`ax = ax ⊕ [$addr]`|Logical XOR accumulator with contents of `$addr`|
+|`not $addr`|`ax = ¬[$addr]`|Logical NOT contents of `$addr`|
+|`cmp $adr1,$adr2`|`flag = [$adr1]?=[$adr2]`|Compare the contents on locations `$adr1` and `$adr2`|
+|`shl $adr1,$adr2`|`ax = [$adr1] << [$adr2]`|Shift left `[$adr1]` by `[$adr2]`|
+|`shr $adr1,$adr2`|`ax = [$adr1] >> [$adr2]`|Shift right `[$adr1]` by `[$adr2]`|
+|`rol $adr1,$adr2`|`ax = [$adr1] <: [$adr2]`|Rotate left `[$adr1]` by `[$adr2]`|
+|`rol $adr1,$adr2`|`ax = [$adr1] :> [$adr2]`|Rotate right `[$adr1]` by `[$adr2]`|
+|`cla`|`ax = 0`|Clear accumulator|
+|`itf $addr`|`ax = fix([$addr])`|Convert `[$addr]` from integer to fixed-point|
+|`fti $addr`|`ax = int([$addr])`|Convert `[$addr]` from fixed-point to integer|
 
 ### Control Code Table
 
@@ -106,104 +148,110 @@ Each components within the computer has its own control codes, that dictates whe
 
 ![Flyer 1 - 11](https://github.com/user-attachments/assets/e724d595-ec96-4f88-a948-5b0f4ac11561)
 
-_Table 5. Flyer-1 control word truth table._
+_Table 4. Flyer-1 control word truth table._
 
 ## Assembly Language
 
-Assembly program of Flyer-1 consists of three sections separated by curly brackets; **stat** (contains static variable declarations), **var** (contains dynamic variable declarations) and **text** (where your instructions are written). Below is an example of Fibonacci program, that counts Fibonacci numbers from 1 to 105329 as an upper limit.
+### General Overview
 
+The computer's assembly language follows that of computers mentioned earlier, combined with bracket nesting methods similar to C/C++/C#. The source file is divided into three sections: **stat**, containing declaration of static variables; **var**, declaration of dynamic variables; and **text** that contains all instructions necessary to work with said variables before. These sections are separated by brackets as shown below. Current version can only support single-line comments, that begin with ```//``` slashes.
 ```
-// This is how you write a comment in one line.
-// This is how you
-// write a comment that
-// spans multiple lines.
-
 stat {
-  // Variables declared inside this bracket won't change along program runtime.
-  int lit_0,#05ae4c             // For int variables, if there's a slash (#), the numbers you typed after that are read as hexadecimals.
-  int lit_1,105329              // If you just typed a number without #, it's read as decimals.
-  fix lit_2,1305.06275          // Fixed-point variables are directly typed with dots for decimal points.
-  asc lit_3,hW!                 // For ASCII 3-char string variables, you just type the corresponding ASCII character (can't be more than 3!)
+  // Declaration of static variables: __type__ __name__,__value__
+  // Variables declared as static (in this section) cannot, and will not, have its values manipulated by corresponding instructions during its runtime.
 }
 
 var {
-  // Variables declared within var are flexible to change by the program during runtime.
-  int x,0
-  int y,1
-  int z,0
+  // Declaration of dynamic variables: __type__ __name__,__value__
+  // As opposed to static, dynamic variables can be freely manipulated by corresponding instructions.
 }
 
 text {
-  // This is where you'll write your instructions.
-start:
-  // THIS SEGMENT MUST EXIST. IF YOU DELETE 'start:' THEN ANY INSTRUCTION YOU'VE TYPED IN
-  // WON'T BE ABLE TO RUN, AS YOU DIDN'T PROVIDE A STARTING POINT OF EXECUTION.
-  dop x,01        // x is outputted to Digital Port 01
-  add x,y         // AX = x + y
-  sta z           // z = AX. Hence, z = x + y
-  trx y,x         // x = y
-  trx z,y         // y = z
-  cmp x,lit_1     // Compares x against lit_1 (105329)
-  jna start       // If x isn't larger than lit_1, back to start (count again)
-  jmp end         // If the 'jna' above isn't met, jump to end (termination)
-end:
-  // AT LEAST THERE MUST BE ONE TERMINATION POINT, MARKED WITH 'hlt' INSTRUCTION.
-  // Termination segment doesn't necessarily need to be written as 'end:' though.
-  dop lit_3,02    // lit_3 (hW!) is outputted to Digital Port 02.
-  hlt             // Halt until reset.
+  // Where one would write every instructions necessary.
+start:        // Loop 'start'
+  __inst_0__  // 'start' segment must always exist within text{...}. Otherwise, any programs and loop segments you've written won't run.
+  __inst_1__  // This is because 'start' segment provides a starting point of program execution for the processor.
+  __inst_2__
+  __inst_3__
+foo:          // Loop 'foo'
+  __inst_4__
+  __inst_5__
+  __inst_6__
+bar:          // Loop 'bar'
+  __inst_7__
+  __inst_8__
+  __inst_9__
 }
 ```
 
-### Typing Discipline
-#### Declaring Variables
-To declare an integer variable, one can follow either methods below:
-```
-int __name__,__value__
+### Instruction Loops
 
-int x,314159    // Declare 'x' as an integer with value of 314159 (decimal)
-int y,#271828   // Declare 'y' as an integer with value of 271828 (hexadecimal)
-```
-To declare a fixed-point variable, one must follow this method below:
-```
-fix __name__,__whole__.__fraction__
+In more elaborate programs, it is necessary to separate segments of instructions based on their functions (complex math functions, pixel rendering, etc.). This separation of instruction segments are known as loops, which are written in Flyer-1 assembly format as ```__loopName__:``` (it always ends with colons).
 
-fix z,1.73205   // Declare 'z' as a fixed-point with value of 1.73209 (this would later be converted into fractional binary)
+These separated programs begin in different addresses, and with the compiled code having no comments for the programmer to know which instruction starts which loop, this task of memory allocation is automatically handled by assembler program. As long as there's a loop name, whenever it is required to jump to some loop, you can just write the loop name after branching instructions, as shown below,
 ```
-To declare an ASCII 3-char variable, one must adhere to the method below:
-```
-asc __name__,__char__
-
-asc goodword,Hi!  // Declare 'goodword' as ASCII 3-char string with characters 'Hi!'
-```
-Based on which sections does the variable live (**stat** or **var**), the assembler would automatically allocate memory locations to store it. The storage order follows which variable is written first within the brackets.
-
-#### Instruction Operands
-In the previous **Instruction Set** segment, the operands are written in what they signify within its execution, either an $ADDRESS, #DATA or PORT. While one can program the entire Flyer-1 computer without even once replacing variable addresses with their names (or labels, as it's called in an assembler program), it would be worthwhile to understand what other methods can one use to program the computer.
-**Memory Instructions** (lda, sta, trx, pst, pop)
-```
-lda $00347a          // Directly load data from address ($) 00347a to accumulator
-lda x                // Load the contents of variable 'x' into accumulator (x --> signifies its location)
-sta $33165f          // Same thing goes for 'sta' instruction,
-sta y                // both the $ or variable-name addressing methods.
-
-trx $17ff3e,a        // Transfer whatever is at $17ff3e to wherever 'a' is located
-trx b,$7940ab        // Same thing for 'trx' in reverse, wherever 'b' is got transferred to $7940ab
-trx $649007,$172943  // A direct transfer involving specified addresses can also be done
-
-pst x                // One can accomplish stack operations (both 'pst' and 'pop') by either using variables,
-pst $3306ac          // Or by directly writing which address would have its contents got pushed into stack.
-```
-**Branching Instructions** (jmp, jcb, ..., jpo)
-```
-jeq foo              // Jump if equal to 'foo:' loop
-jmp bar              // Jump to 'bar:' loop without conditions
-jmp $000374          // NOT RECOMMENDED: You can directly type in where to jump, but that location might not contain an opcode...
-jng $30511e          // NOT RECOMMENDED: Same thing goes for conditional branching instructions...
+foo:
+  __inst_0__
+  __inst_1__
+  ...
+  jeq bar      // Jump if A=B to bar
+  jal foo      // Jump if A>B to foo
+  jmp baz      // Jump to baz
+bar:
+  __inst_2__
+  __inst_3__
+  ...
+  jzr foo      .. Jump if A=0 to foo
+  jmp qux      // Jump to qux
+baz:
+  __inst_4__
+  __inst_5__
+  ...
+  jcb bar      // Jump if Carry or Borrow to bar
+  jmp qux      // Jump to qux
+qux:
+  __inst_6__
+  __inst_7__
+  ...
+  jpe foo       // Jump if A Even to foo
+  hlt
 ```
 
-### How To Program It?
+### Variable Declarations
+
+As previously mentioned in the **Instruction Set Architecture** chapter, there are three supported types of variable used within the Flyer-1 computer, that are **int** (integer number), **fix** (fixed-point number) and **asc** (ASCII 3-char string).
+
+To declare **int** variables, one can follow either format below,
+```
+int a,#33ae4c       // #NUMBER --> NUMBER is declared as Hex, and are now the value of 'a'
+int b,314285        // NUMBER --> NUMBER is declared as Dec, and are now the value of 'a'
+```
+To declare **fix** variables, one must adhere to the format below,
+```
+fix c,2.71828       // Just directly type the number with points as decimal fractions.
+```
+To declare **asc** variables, this format must be used,
+```
+asc d,wt?           // Just directly type any keyboard character, as long as it's just 3 chars long.
+```
+
+The variables would be automatically placed into memory locations based on their type (static or dynamic), where the first declared variable gets first place, and so on. Since the address of each variables are only shown in the assembled (hex memory maps) file, one has no method to obtain specific locations of each and every variable unless directly modifying the assembled hex file. For this, one only have to write the involved variable's name as operands, where it represents (or acts as a pointer towards) the variable's location.
+
+### How Do I Run The Program?
+
+If one were to operate the simulated hardware (`Flyer1.circ`) and write programs in it, the pre-requisites are **Logisim Evolution v3.8.0** along with **Python 3.0 and above**.
+1. After validating that the two pre-requisites are already installed as they are (yes, it does not require further add-on modules or libraries), download the file.
+2. Write the program according to the guidelines above, and save it with `__name__.asm` extension.
+3. Using the CMD or Powershell (Windows) or Terminal (Linux), change directory to the path of this downloaded file.
+4. Type the following command: `python Flyer1_Assembler.py __name__.asm`
+5. The output would have the words `v3.0 hex words addressed`. Copy all the output lines, paste them into a text editor. Save it as `Flyer1RAMContent.txt` for easier identification.
+6. Open the circuit `Flyer1.circ`, right-click on the RAM and select 'Load Image' then search for `Flyer1RAMContent.txt`
+7. Click Ctrl+K, and off it goes until you halt them.
 
 ## Future Plans
 Per this release (v1.0), the foreseeable developments of Flyer-1 would involve some of the topics listed below.
-1. Development of a general-purpose OS (operating system) similar to computers between 1980-1990, e.g. MS-DOS, Unix, Commodore64. May also try to develop graphical OS, similar to Windows 1.0 or Windows 95.
-2. Physical (microprocessor package) circuit based on the Flyer-1's architecture; Said microprocessor chip are planned for integration into a single-board computer (currently also under feasibility study), akin to PE6502 or Gigatron TTL.
+1. Making a better assembler that visually appears similar to code editors.
+2. Addition of more data formats (long strings, floating-point numbers, list/tuple etc.) and macros in the assembler.
+3. An emulator built on Python (and then transferred to C/C++ for better speed), running as if it's real time.
+4. Development of an OS, both general-purpose and embedded.
+5. Creating a physical version of the computer, with the help of... I don't know, but if time, resources and plans permit, I wanna do this. 
