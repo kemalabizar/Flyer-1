@@ -237,6 +237,40 @@ asc d,wt?           // Just directly type any keyboard character, as long as it'
 
 The variables would be automatically placed into memory locations based on their type (static or dynamic), where the first declared variable gets first place, and so on. Since the address of each variables are only shown in the assembled (hex memory maps) file, one has no method to obtain specific locations of each and every variable unless directly modifying the assembled hex file. For this, one only have to write the involved variable's name as operands, where it represents (or acts as a pointer towards) the variable's location.
 
+### Example Program: Fibonacci
+
+```
+// This program counts Fibonacci numbers, a(N) = a(N-1) + a(N-2), from 0. (0, 1, 1, 2, 3, 5, 8, 13, ...)
+// The upper limit for this Fibonacci calculation is 100000, stated as lit_0.
+
+stat {
+  int lit_0,100000    // lit_0: literal 0, int, 100000 decimal
+  asc lit_1,Hw!       // lit_1: literal 1, asc, 'Hw!'
+}
+
+var {
+  int x,0    // x = 0 decimal
+  int y,0    // y = 1 decimal
+  int z,0    // z = 0 decimal
+}
+
+text {
+start:
+  dop x,01       // Output x to port digital 01
+  add x,y        // AX = x + y
+  sta z          // z = AX; hence z = x + y
+  trx y,x        // x = y
+  trx z,y        // y = z
+  cmp x,lit_0    // Compare x against lit_0 (100000 decimal)
+  jna start      // Jump if not A>B to start
+  jmp end        // Jump to end if previous instruction isn't fulfilled
+end:
+  dop lit_1,01   // Output lit_1 ('Hw!') to port digital 01
+  dop x,02       // Output x to port digital 02
+  hlt            // Halt
+}
+```
+
 ### How Do I Run The Program?
 
 If one were to operate the simulated hardware (`Flyer1.circ`) and write programs in it, the pre-requisites are **Logisim Evolution v3.8.0** along with **Python 3.0 and above**.
