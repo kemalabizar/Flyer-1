@@ -17,19 +17,27 @@ _Figure 1. Flyer-1 computer general circuitry._
 
 ![Flyer 1 - 02](https://github.com/user-attachments/assets/f3fea21f-3d84-4767-9246-711c09332730)
 
+_Table 1. Flyer-1 computer registers._
+
 ### Data Formats
 
 1. Integer Number (2's complement system)
 
 ![Flyer 1 - 03](https://github.com/user-attachments/assets/7e4bdc95-fe17-423e-9f5d-e2e9cda7418c)
 
+_Table 2a. Integer number formatting._
+
 2. Fixed-Point Number (2's complement system)
 
 ![Flyer 1 - 04](https://github.com/user-attachments/assets/767e9b89-7c16-46ff-9f75-1c4a065328ce)
 
+_Table 2b. 24-bit Fixed-Point number formatting._
+
 3. ASCII 3-Character String
 
 ![Flyer 1 - 05](https://github.com/user-attachments/assets/7931b4cf-fec9-4b45-aa46-561f5077ab8f)
+
+_Table 2c. ASCII 3-Char string formatting._
 
 ### Major Components
 
@@ -75,16 +83,20 @@ _Figure 5. Peripheral unit with 8 digital ports and 4 analog ports._
 
 #### 4. Random Access Memory (RAM)
 
-The main memory for this computer runs on 24-bit wide data and address bus, giving a total of 16.777.216 memory locations; considering that 24-bit equals to 3 bytes, this gives the total memory capability of 50.3 MByte. The memory is further divided into five segments based on their use, as shown in Figure 6 below. The stack can be allocated to store variables in case of mathematical operations that require PEMDAS rule when executed, or other conditions that may necessitate priority-based memory. Reserve memory can be allocated to store peripheral data or programs etc.
+Flyer-1 main memory runs on 24-bit wide data and address bus, giving a total of 16.777.216 memory locations; considering that 24-bit equals to 3 bytes, this gives the total memory capability of 50.3 MByte. The memory is further divided into five segments based on their use, as shown in Figure 6 below. The stack can be allocated to store variables in case of mathematical operations that require PEMDAS rule when executed, or other conditions that may necessitate priority-based memory. Reserve memory can be allocated to store peripheral data or programs etc.
 
 ![Flyer 1 - 10](https://github.com/user-attachments/assets/b77fe7a9-ff55-495d-8085-14e28f61f2af)
 
-_Figure 6. Memory segmentation chart for Flyer-1 Computer._
+_Table 3. Memory segmentation chart for Flyer-1 computer._
 
 ### Instruction Set
 
-Below are listed the total 43 instructions valid for programming the Flyer-1 Computer. The list below only contains the basic addressing modes without any variable or loop name whatsoever; for that segment, please refer to Assembly Language section of this README.
+Below are listed the total 43 instructions valid for programming the Flyer-1 computer. The list below only contains the basic addressing modes without any variable or loop name whatsoever; for that segment, please refer to Assembly Language section of this README.
 _CAUTION: Illegal opcodes may have the risk of stalling the device, corrupting stored data or any other unintended consequences. USE UNDER YOUR OWN RISK._
+
+![Flyer 1 - 12](https://github.com/user-attachments/assets/34166b05-9ff0-48ff-bb69-ef957f9481c1)
+
+_Table 4. Instruction set table for Flyer-1 computer._
 
 ### Control Code Table
 
@@ -92,15 +104,104 @@ Execution of instructions are divided into clock cycle counts, which differs bet
 
 Each components within the computer has its own control codes, that dictates whether it must store (hold) or output (open) data flow from and into buses, when counters must count up or down and output their values, when to read from or write into RAM etc. In total, there are 26 control wires.
 
+![Flyer 1 - 11](https://github.com/user-attachments/assets/e724d595-ec96-4f88-a948-5b0f4ac11561)
 
+_Table 5. Flyer-1 control word truth table._
 
 ## Assembly Language
-### General Overview
-### Writing The Program
 
-## How Do I Make It Run?
-### Assembler Program: Making It Run
-### Processor Emulator: Beyond Logic Circuitry
+Assembly program of Flyer-1 consists of three sections separated by curly brackets; **stat** (contains static variable declarations), **var** (contains dynamic variable declarations) and **text** (where your instructions are written). Below is an example of Fibonacci program, that counts Fibonacci numbers from 1 to 105329 as an upper limit.
+
+```
+// This is how you write a comment in one line.
+// This is how you
+// write a comment that
+// spans multiple lines.
+
+stat {
+  // Variables declared inside this bracket won't change along program runtime.
+  int lit_0,#05ae4c             // For int variables, if there's a slash (#), the numbers you typed after that are read as hexadecimals.
+  int lit_1,105329              // If you just typed a number without #, it's read as decimals.
+  fix lit_2,1305.06275          // Fixed-point variables are directly typed with dots for decimal points.
+  asc lit_3,hW!                 // For ASCII 3-char string variables, you just type the corresponding ASCII character (can't be more than 3!)
+}
+
+var {
+  // Variables declared within var are flexible to change by the program during runtime.
+  int x,0
+  int y,1
+  int z,0
+}
+
+text {
+  // This is where you'll write your instructions.
+start:
+  // THIS SEGMENT MUST EXIST. IF YOU DELETE 'start:' THEN ANY INSTRUCTION YOU'VE TYPED IN
+  // WON'T BE ABLE TO RUN, AS YOU DIDN'T PROVIDE A STARTING POINT OF EXECUTION.
+  dop x,01        // x is outputted to Digital Port 01
+  add x,y         // AX = x + y
+  sta z           // z = AX. Hence, z = x + y
+  trx y,x         // x = y
+  trx z,y         // y = z
+  cmp x,lit_1     // Compares x against lit_1 (105329)
+  jna start       // If x isn't larger than lit_1, back to start (count again)
+  jmp end         // If the 'jna' above isn't met, jump to end (termination)
+end:
+  // AT LEAST THERE MUST BE ONE TERMINATION POINT, MARKED WITH 'hlt' INSTRUCTION.
+  // Termination segment doesn't necessarily need to be written as 'end:' though.
+  dop lit_3,02    // lit_3 (hW!) is outputted to Digital Port 02.
+  hlt             // Halt until reset.
+}
+```
+
+### Typing Discipline
+#### Declaring Variables
+To declare an integer variable, one can follow either methods below:
+```
+int __name__,__value__
+
+int x,314159    // Declare 'x' as an integer with value of 314159 (decimal)
+int y,#271828   // Declare 'y' as an integer with value of 271828 (hexadecimal)
+```
+To declare a fixed-point variable, one must follow this method below:
+```
+fix __name__,__whole__.__fraction__
+
+fix z,1.73205   // Declare 'z' as a fixed-point with value of 1.73209 (this would later be converted into fractional binary)
+```
+To declare an ASCII 3-char variable, one must adhere to the method below:
+```
+asc __name__,__char__
+
+asc goodword,Hi!  // Declare 'goodword' as ASCII 3-char string with characters 'Hi!'
+```
+Based on which sections does the variable live (**stat** or **var**), the assembler would automatically allocate memory locations to store it. The storage order follows which variable is written first within the brackets.
+
+#### Instruction Operands
+In the previous **Instruction Set** segment, the operands are written in what they signify within its execution, either an $ADDRESS, #DATA or PORT. While one can program the entire Flyer-1 computer without even once replacing variable addresses with their names (or labels, as it's called in an assembler program), it would be worthwhile to understand what other methods can one use to program the computer.
+**Memory Instructions** (lda, sta, trx, pst, pop)
+```
+lda $00347a          // Directly load data from address ($) 00347a to accumulator
+lda x                // Load the contents of variable 'x' into accumulator (x --> signifies its location)
+sta $33165f          // Same thing goes for 'sta' instruction,
+sta y                // both the $ or variable-name addressing methods.
+
+trx $17ff3e,a        // Transfer whatever is at $17ff3e to wherever 'a' is located
+trx b,$7940ab        // Same thing for 'trx' in reverse, wherever 'b' is got transferred to $7940ab
+trx $649007,$172943  // A direct transfer involving specified addresses can also be done
+
+pst x                // One can accomplish stack operations (both 'pst' and 'pop') by either using variables,
+pst $3306ac          // Or by directly writing which address would have its contents got pushed into stack.
+```
+**Branching Instructions** (jmp, jcb, ..., jpo)
+```
+jeq foo              // Jump if equal to 'foo:' loop
+jmp bar              // Jump to 'bar:' loop without conditions
+jmp $000374          // NOT RECOMMENDED: You can directly type in where to jump, but that location might not contain an opcode...
+jng $30511e          // NOT RECOMMENDED: Same thing goes for conditional branching instructions...
+```
+
+### How To Program It?
 
 ## Future Plans
 Per this release (v1.0), the foreseeable developments of Flyer-1 would involve some of the topics listed below.
