@@ -31,7 +31,7 @@ opclib = {
     }
 
 # File read into string, split by lines. lines = ['__line1__', '__line2__', ...]
-f = open('testcode.asm', mode='r'); f = f.read()
+f = open(sys.argv[1], mode='r'); f = f.read()
 lines = re.split("\n", f)
 
 # lines[i] split by '//' (comment markers), delete comments
