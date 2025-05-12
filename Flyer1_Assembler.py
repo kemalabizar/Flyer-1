@@ -1,19 +1,20 @@
-import sys, re
+import sys,re
 
-opclib = {
-    "lda":[0x000, 2],    "add":[0x100, 3],
-    "ldi":[0x010, 2],    "sub":[0x110, 3],
-    "sta":[0x020, 2],    "mul":[0x120, 3],
-    "sti":[0x030, 3],    "div":[0x130, 3],
-    "trx":[0x040, 3],    "ana":[0x140, 2],
-    "jmp":[0x050, 2],    "ora":[0x150, 2],
-    "jcb":[0x060, 2],    "xra":[0x160, 2],
-    "jnc":[0x061, 2],    "not":[0x170, 2],
-    "jal":[0x062, 2],    "cmp":[0x180, 3],
-    "jna":[0x063, 2],    "shl":[0x190, 3],
-    "jeq":[0x064, 2],    "shr":[0x194, 3],
-    "jnq":[0x065, 2],    "rol":[0x198, 3],
-    "jzr":[0x066, 2],    "ror":[0x19c, 3],
+tklist_vartype = ['int', 'fix', 'asc']
+tkdict_opcodes = {
+    "lda":[0x000, 2],   "add":[0x100, 3],
+    "ldi":[0x010, 2],   "sub":[0x110, 3],
+    "sta":[0x020, 2],   "mul":[0x120, 3],
+    "sti":[0x030, 3],   "div":[0x130, 3],
+    "trx":[0x040, 3],   "ana":[0x140, 2],
+    "jmp":[0x050, 2],   "ora":[0x150, 2],
+    "jcb":[0x060, 2],   "xra":[0x160, 2],
+    "jnc":[0x061, 2],   "not":[0x170, 2],
+    "jal":[0x062, 2],   "cmp":[0x180, 3],
+    "jna":[0x063, 2],   "shl":[0x190, 3],
+    "jeq":[0x064, 2],   "shr":[0x194, 3],
+    "jnq":[0x065, 2],   "rol":[0x198, 3],
+    "jzr":[0x066, 2],   "ror":[0x19c, 3],
     "jnz":[0x067, 2],
     "jng":[0x068, 2],
     "jps":[0x069, 2],
@@ -25,237 +26,165 @@ opclib = {
     "aip":[0x0a0, 2],
     "aop":[0x0b0, 2],
     "pst":[0x0c0, 2],
-    "pop":[0x0d0, 2],    "cla":[0x1d, 1],
-    "nop":[0x0e0, 1],    "itf":[0x1e, 2],
-    "hlt":[0x0f0, 1],    "fti":[0x1f, 2]
+    "pop":[0x0d0, 2],   "cla":[0x1d0, 1],
+    "nop":[0x0e0, 1],   "itf":[0x1e0, 2],
+    "hlt":[0x0f0, 1],   "fti":[0x1f0, 2],
     }
 
-# File read into string, split by lines. lines = ['__line1__', '__line2__', ...]
-f = open(sys.argv[1], mode='r'); f = f.read()
-lines = re.split("\n", f)
+def sourcetostring(source):
+    # convert *.asm file into string
+    with open(source, mode='r', encoding='utf-8-sig') as f:
+        stringified = f.read()
+    return stringified
 
-# lines[i] split by '//' (comment markers), delete comments
-for i in range(0, len(lines)):
-    lines[i] = re.split("//", lines[i])
-    if len(lines[i]) > 1: lines[i].pop(1)
-    else: pass
-# remove empty elements, e.g. lines that are empty because of comment deletion
-    while '' in lines[i]:
-        lines[i].remove('')
-while [] in lines:
-    lines.remove([])
-for i in range(0, len(lines)):
-    lines[i] = lines[i][0]
-# join the comment-exempt lines into one long s
-s = ""
-for i in range(0, len(lines)):
-    s += lines[i] + "\n"
-# separate each section by parentheses
-s = re.split("{|}", s); lines.clear()
+def deletecomments(source_string):
+    source_string = re.split("\n", source_string)
+    no_comments = ''
+    for i in range(0, len(source_string)):
+        source_string[i] = re.split("//", source_string[i])
+        if len(source_string[i]) > 1:
+            source_string[i].pop()
+        no_comments += source_string[i][0]+'\n'
+    return no_comments
 
-# static section (s[1]) processing
-static = {} # static = {'__label__':[__type__, __value__, __location__]}
-s[1] = re.split("\n", s[1])
-# initialize memory location for static variables
-address = 0x200000
-while '' in s[1]: s[1].remove('')
-# split each static declaration lines into [type, label, value]
-for i in range(0, len(s[1])):
-    s[1][i] = re.split(" |,", s[1][i])
-    # processing 'int' declarations
-    if s[1][i][0] == 'int':
-        if '#' in s[1][i][2]:
-            s[1][i][2] = '0x' + str(s[1][i][2])[1:7]
+def tokenize(source_string):
+    # tokenize the string
+    # e.g. this string, 'and x,y\nsta z\ncmp z,n'
+    # the tokenized version is below
+    # ['and', 'x,y', 'sta', 'z', 'cmp', 'z,n']
+    tokenized = re.split(" |, |\{|\}|\n|\t", source_string)
+    while '' in tokenized: tokenized.remove('')
+    return tokenized
+
+def readvariables(source_tokens):
+    static, dynamic = {}, {}
+    # format: {variable_name:[variable_value, variable_address]}
+    idx_stat, idx_dyn, idx_text = 0, 0, 0
+    for i in range(0, len(source_tokens)):
+        if source_tokens[i] == 'stat': idx_stat = i
+        elif source_tokens[i] == 'var': idx_dyn = i
+        elif source_tokens[i] == 'text': idx_text = i
+        else: pass
+    ts = source_tokens[idx_stat:idx_dyn]
+    td = source_tokens[idx_dyn:idx_text]
+    addr = 0x200000
+    for i in range(0, len(ts)):
+        if ts[i] in tklist_vartype:
+            k = re.split(",", ts[i+1])
+            if ts[i] == 'int':
+                if '#' in k[1]:
+                    k[1] = int(k[1][1:], base=16)
+                else: pass
+            if ts[i] == 'asc':
+                char = ''
+                for i in range(0, len(k[1])):
+                    char += hex(ord(k[1][i]))
+                k[1] = char
+            if ts[i] == 'fix':
+                k[1] = int(float(k[1])*(2**8))
+            static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+        else: pass
+    addr = 0x300000
+    for i in range(0, len(td)):
+        if td[i] in tklist_vartype:
+            k = re.split(",", td[i+1])
+            if td[i] == 'int':
+                if '#' in k[1]:
+                    k[1] = int(k[1][1:], base=16)
+                else: pass
+            if td[i] == 'asc':
+                char = ''
+                for i in range(0, len(k[1])):
+                    char += hex(ord(k[1][i]))
+                k[1] = char
+            if td[i] == 'fix':
+                k[1] = int(float(k[1])*(2**8))
+            dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+        else: pass
+    return static, dynamic
+
+def pass_1(source_tokens):
+    # first pass reads the length of each loop segments (e.g. '*:')
+    # outputs a dictionary, format: {loopname: start_ddress}
+    # loop_start_address(n) = loop_length(n)
+    idx_text = source_tokens.index('text')
+    loop, code_tokens, instr_length = {}, [], 0
+    tx = source_tokens[idx_text+1:]
+    for i in range(0, len(tx)):
+        if ':' not in tx[i]:
+            if tx[i] in tkdict_opcodes.keys():
+                instr_length += tkdict_opcodes.get(tx[i])[1]
+            else: pass
+            code_tokens.append(tx[i])
         else:
-            s[1][i][2] = f"{int(str(s[1][i][2])):#0{8}x}"
-    # processing 'fix' declarations
-    if s[1][i][0] == 'fix':
-        'this might work'
-        value = re.split("\.", s[1][i][2])
-        value[0] = f"{int(value[0]):#0{6}x}"[2:]
-        # converting decimal fractions into binary fractions (fuck me. and thanks Math Stack Exchange)
-        # https://math.stackexchange.com/questions/3336008/ upvote both Q and A if you can. He helped made this possible.
-        value[1] = float('0.'+value[1]); fracbin = ''
-        for j in range(0, 8):
-            value[1] *= 2
-            #print(j, value[1])
-            if value[1] >= 1.0:
-                fracbin += '1'; value[1] -= 1
+            loop[tx[i]] = instr_length
+    return code_tokens, loop
+
+def pass_2(code_tokens, loops_dict, static_dict, dynamic_dict):
+    # compiles the code segment based on three dicts: loop, static vars, and dynamic vars
+    machine_code = []
+    byte0, byte1 = 0, []
+    for i in range(0, len(code_tokens)):
+        if code_tokens[i] in tkdict_opcodes.keys():
+            byte0 = tkdict_opcodes.get(code_tokens[i])
+            opc, span = int(byte0[0])*(2**15), byte0[1]
+            machine_code.append(f"{opc:#0{8}x}"[2:])
+        else:
+            byte1 = re.split(",", code_tokens[i])
+            if span == 3: # 3-op instructions
+                byte1[0] = f"{(static_dict.get(byte1[0])[1] if byte1[0] in static_dict.keys() else dynamic_dict.get(byte1[0])[1]):#0{8}x}"[2:]
+                byte1[1] = f"{(static_dict.get(byte1[1])[1] if byte1[1] in static_dict.keys() else dynamic_dict.get(byte1[1])[1]):#0{8}x}"[2:]
+            if opc >= 0x400000 and opc <= 0x580000: # dip, dop, aip, aop
+                byte1[0] = f"{(static_dict.get(byte1[0])[1] if byte1[0] in static_dict.keys() else dynamic_dict.get(byte1[0])[1]):#0{8}x}"[2:]
+                opcm = int(machine_code[len(machine_code)-1], base=16) + int(byte1[1])*(2**16)
+                machine_code[len(machine_code)-1] = f"{opcm:#0{8}x}"[2:]
+                byte1.pop()
+            if span == 2:
+                if opc >= 0x280000 and opc <= 0x378000: # jmp and conditionals
+                    byte1[0] = f"{loops_dict.get(byte1[0]+':'):#0{8}x}"[2:]
+                if (opc >= 0x000000 and opc <= 0x100000) or (opc >= 0xa00000 and opc <= 0xb80000) or opc == (0x600000 or 0x680000):
+                    byte1[0] = f"{(static_dict.get(byte1[0])[1] if byte1[0] in static_dict.keys() else dynamic_dict.get(byte1[0])[1]):#0{8}x}"[2:]
             else:
-                fracbin += '0'
-        value[1] = hex(int(fracbin, base=2))[2:]
-        s[1][i][2] = '0x' + value[0] + value[1]
-    # processing 'asc' declarations:
-    if s[1][i][0] == 'asc':
-        word = s[1][i][2]; char = ''
-        for j in range(0, len(word)):
-            char += hex(ord(word[j]))[2:]
-        char = '0x' + char[:6]
-        s[1][i][2] = char
-    # add new elements to dict static, per the format previously
-    static[s[1][i][1]] = [s[1][i][0], s[1][i][2], hex(address)]
-    address += 1
-
-# var section (s[3]) processing
-var = {} # var = {'__label__':[__type__, __value__, __location__]}
-s[3] = re.split("\n", s[3])
-# initialize memory location for dynamic variables (var)
-address = 0x300000
-while '' in s[3]: s[3].remove('')
-# split each var declaration lines into [type, label, value]
-for i in range(0, len(s[3])):
-    s[3][i] = re.split(" |,", s[3][i])
-    # check if the names for dynamic variables are already used as static
-    # if that happens, raise error
-    if s[3][i][1] in static:
-        print("ASSEMBLING ERROR 1: VARIABLE NAME ALREADY USED AS STATIC")
-        break
-    else: pass
-    # processing 'int' declarations
-    if s[3][i][0] == 'int':
-        if '#' in s[3][i][2]:
-            s[3][i][2] = '0x' + str(s[3][i][2])[1:7]
-        else:
-            s[3][i][2] = f"{int(str(s[3][i][2])):#0{8}x}"
-    # processing 'fix' declarations
-    if s[3][i][0] == 'fix':
-        'this might work'
-        value = re.split("\.", s[3][i][2])
-        value[0] = f"{int(value[0]):#0{6}x}"[2:]
-        # converting decimal fractions into binary fractions (fuck me. and thanks Math Stack Exchange)
-        # https://math.stackexchange.com/questions/3336008/ upvote both Q and A if you can. He helped made this possible.
-        value[1] = float('0.'+value[1]); fracbin = ''
-        for j in range(0, 8):
-            value[1] *= 2
-            #print(j, value[1])
-            if value[1] >= 1.0:
-                fracbin += '1'; value[1] -= 1
-            else:
-                fracbin += '0'
-        value[1] = hex(int(fracbin, base=2))[2:]
-        s[3][i][2] = '0x' + value[0] + value[1]
-    # processing 'asc' declarations:
-    if s[3][i][0] == 'asc':
-        word = s[3][i][2]; char = ''
-        for j in range(0, len(word)):
-            char += hex(ord(word[j]))[2:]
-        char = '0x' + char[:6]
-        s[3][i][2] = char
-    # add new elements to dict static, per the format previously
-    var[s[3][i][1]] = [s[3][i][0], s[3][i][2], hex(address)]
-    address += 1
-
-# code section (s[5]) processing
-# PASS 1: Record loop labels and their respective locations.
-loop = {} # loop = {'__label__':loopStartLocation}
-# split the code by lines
-code = re.split("\n", s[5]); location = 0
-while '' in code: code.remove('')
-for i in range(0, len(code)):
-    # if line is a loop label, append it to the dictionary
-    if ":" in code[i]:
-        loop[code[i]] = location
-    # else if line is an instruction, split by tab and space
-    else:
-        code[i] = re.split("\t| ", code[i])
-        while '' in code[i]: code[i].remove('')
-        # get the value of how much memory will that instruction line occupy
-        location += opclib.get(code[i][0])[1]
-
-# PASS 2: Using var, static and loop dict, fill any necessary labels with corresponding addresses/data
-for i in range(0, len(list(loop))):
-    # remove lines consisting of just loop labels; we already have them
-    if list(loop)[i] in code:
-        code.remove(list(loop)[i])
-var_keys, static_keys = list(var.keys()), list(static.keys())
-loop_keys = list(loop.keys())
-for i in range(0, len(code)):
-    code[i][0] = opclib.get(code[i][0])[0]
-    # print(code[i])
-    if len(code[i]) == 2:
-        if ',' in code[i][1]:
-            op = re.split(",", code[i][1]); code[i].pop(1)
-            code[i].append(op[0]); code[i].append(op[1])
-            if len(code[i]) == 3:
-                # 2-op inst. (sti, trx, add, sub, mul, div, cmp, shl, shr, rol, ror)
-                if code[i][0] == 0x030:
-                    # sti
-                    code[i][1] = f"{int(code[i][1][1:], base=16):#0{8}x}"[2:]
-                    code[i][2] = f"{int(code[i][2][1:], base=16):#0{8}x}"[2:]
-                if (code[i][0] >= 0x080) and (code[i][0] <= 0x0b0):
-                    # dip, dop, aip, aop
-                    code[i][0] += int(code[i][2])*2
-                    if code[i][1] in var_keys:
-                        code[i][1] = var.get(code[i][1])
-                        code[i][1] = code[i][1][2][2:]
-                    elif code[i][1] in static_keys:
-                        code[i][1] = static.get(code[i][1])
-                        code[i][1] = code[i][1][2][2:]
-                    code[i].pop()
-                    # print(code[i][1], code[i][2])
-                else:
-                    # trx, add, sub, mul, div, cmp, shl, shr, rol, ror
-                    if code[i][1] in var_keys:
-                        code[i][1] = var.get(code[i][1])
-                        code[i][1] = code[i][1][2][2:]
-                    elif code[i][1] in static_keys:
-                        code[i][1] = static.get(code[i][1])
-                        code[i][1] = code[i][1][2][2:]
-                    if code[i][2] in var_keys:
-                        code[i][2] = var.get(code[i][2])
-                        code[i][2] = code[i][2][2][2:]
-                    elif code[i][2] in static_keys:
-                        code[i][2] = static.get(code[i][2])
-                        code[i][2] = code[i][2][2][2:]
-                    # print(code[i][1], code[i][2])
-        else:
-            # 1-op inst. (lda, sta, ldi, jmp, conditional branchings, ana, ora, xra, not, itf, fti)
-            if code[i][0] == 0x010:
-                # ldi
                 pass
-            if ((code[i][0] >= 0x050) and (code[i][0] <= 0x06f)):
-                # jmp and conditional branching
-                colonlabel = code[i][1]+':'
-                if colonlabel in loop_keys:
-                    code[i][1] = loop.get(colonlabel)
-            else:
-                # lda, sta, ana, ora, xra, not, itf, fti
-                if code[i][1] in var_keys:
-                    code[i][1] = var.get(code[i][1])
-                    code[i][1] = code[i][1][2][2:]
-                elif code[i][1] in static_keys:
-                    code[i][1] = static.get(code[i][1])
-                    code[i][1] = code[i][1][2][2:]
-    else: pass
-    code[i][0] *= (2**15)
-    code[i][0] = f"{code[i][0]:#0{8}x}"[2:]
-    if len(code[i]) > 1 and type(code[i][1]) is int:
-        code[i][1] = f"{code[i][1]:#0{8}x}"[2:]
+            for i in range(0, len(byte1)):
+                machine_code.append(byte1[i])
+    return machine_code
 
-# Printing out the codes, static and dynamic variables
-# Printing format: 'MemoryAddr: Opcode Operand1 Operand2' or 'MemoryAddr: VarValue'
-write_address = 0; print('hex v3.0 addressed')
-# Printing the program
-for i in range(0, len(code)):
-    if len(code[i]) == 1:
-        write_address = f"{write_address:#0{8}x}"
-        print(write_address, ":", code[i][0])
-        write_address = int(write_address, base=16) + 1
-    if len(code[i]) == 2:
-        write_address = f"{write_address:#0{8}x}"
-        print(write_address, ":", code[i][0], code[i][1])
-        write_address = int(write_address, base=16) + 2
-    if len(code[i]) == 3:
-        write_address = f"{write_address:#0{8}x}"
-        print(write_address, ":", code[i][0], code[i][1], code[i][2])
-        write_address = int(write_address, base=16) + 3
-# Printing the static variables
-vs = list(static.values())
-for i in range(0, len(vs)):
-    vs[i] = [vs[i][2], vs[i][1][2:]]
-    print(vs[i][0], ':', vs[i][1])
-# Printing the dynamic variables
-vd = list(var.values())
-for i in range(0, len(vd)):
-    vd[i] = [vd[i][2], vd[i][1][2:]]
-    print(vd[i][0], ':', vd[i][1])
+def hex_obj(machine_code, static_dict, dynamic_dict):
+    # adds together the variables into memory
+    addr, compiled = 0, []
+    for i in range(0, len(machine_code)):
+        compiled.append([f"{addr:#0{8}x}"[2:], machine_code[i]])
+        addr += 1
+    datalist = list(static_dict.items()) + list(dynamic_dict.items())
+    for i in range(0, len(datalist)):
+        compiled.append([f"{datalist[i][1][1]:#0{8}x}"[2:], datalist[i][1][0]])
+    return compiled
+
+# TOKENIZE Pt.1: Turn source file into string
+srcstr = sourcetostring("Fibonacci_Testing_Comments.asm")
+# TOKENIZE Pt.2: Delete comments in string
+delcom = deletecomments(srcstr)
+# TOKENIZE Pt.3: Tokenize by words
+srctkn = tokenize(delcom)
+
+# PASS 1 Pt.1: Extract the data (stat, var) within the tokens
+data = readvariables(srctkn)
+stt, var = data[0], data[1]
+# PASS 1 Pt.2: Extract instruction lines (text) into instkn, read loop lengths into dict loops
+prog = pass_1(srctkn)
+cdtkn, loops = prog[0], prog[1]
+
+# PASS 2 Pt.1: With reference of stt, var and loops, generate proper code
+codehex = pass_2(cdtkn, loops, stt, var)
+objthex = hex_obj(codehex, stt, var)
+
+# print(delcom)
+# print('\n', srctkn)
+# print('\n', stt, '\n', var)
+# print('\n', cdtkn, '\n', loops)
+# print('\n', codehex)
+
+print('v3.0 hex words addressed')
+for i in range(0, len(objthex)):
+    print(f"{objthex[i][0]}: {objthex[i][1]}")
