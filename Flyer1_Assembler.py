@@ -41,10 +41,10 @@ def deletecomments(source_string):
     source_string = re.split("\n", source_string)
     no_comments = ''
     for i in range(0, len(source_string)):
-        source_string[i] = re.split("//", source_string[i])
-        if len(source_string[i]) > 1:
-            source_string[i].pop()
-        no_comments += source_string[i][0]+'\n'
+        if '//' in source_string[i]:
+            no_comments += (source_string[i][0:source_string[i].index('//')] + '\n')
+        else:
+            no_comments += (source_string[i] + '\n')
     return no_comments
 
 def tokenize(source_string):
@@ -75,14 +75,16 @@ def readvariables(source_tokens):
                 if '#' in k[1]:
                     k[1] = int(k[1][1:], base=16)
                 else: pass
+                static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
             if ts[i] == 'asc':
                 char = ''
                 for i in range(0, len(k[1])):
-                    char += hex(ord(k[1][i]))
+                    char += hex(ord(k[1][i]))[2:]
                 k[1] = char
+                static[k[0]] = [k[1], addr]; addr += 1
             if ts[i] == 'fix':
                 k[1] = int(float(k[1])*(2**8))
-            static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+                static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
         else: pass
     addr = 0x300000
     for i in range(0, len(td)):
@@ -92,14 +94,16 @@ def readvariables(source_tokens):
                 if '#' in k[1]:
                     k[1] = int(k[1][1:], base=16)
                 else: pass
+                dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
             if td[i] == 'asc':
                 char = ''
                 for i in range(0, len(k[1])):
-                    char += hex(ord(k[1][i]))
+                    char += hex(ord(k[1][i]))[2:]
                 k[1] = char
+                dynamic[k[0]] = [k[1], addr]; addr += 1
             if td[i] == 'fix':
                 k[1] = int(float(k[1])*(2**8))
-            dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+                dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
         else: pass
     return static, dynamic
 
@@ -162,7 +166,7 @@ def hex_obj(machine_code, static_dict, dynamic_dict):
     return compiled
 
 # TOKENIZE Pt.1: Turn source file into string
-srcstr = sourcetostring("Fibonacci_Testing_Comments.asm")
+srcstr = sourcetostring("WebExampleFibonacci.asm")
 # TOKENIZE Pt.2: Delete comments in string
 delcom = deletecomments(srcstr)
 # TOKENIZE Pt.3: Tokenize by words
@@ -179,12 +183,13 @@ cdtkn, loops = prog[0], prog[1]
 codehex = pass_2(cdtkn, loops, stt, var)
 objthex = hex_obj(codehex, stt, var)
 
-# print(delcom)
-# print('\n', srctkn)
-# print('\n', stt, '\n', var)
-# print('\n', cdtkn, '\n', loops)
-# print('\n', codehex)
+#print(srcstr)
+#print('\n', delcom)
+#print('\n', srctkn)
+#print('\n', stt, '\n', var)
+#print('\n', cdtkn, '\n', loops)
+#print('\n', codehex)
 
-print('v3.0 hex words addressed')
+print('\nv3.0 hex words addressed')
 for i in range(0, len(objthex)):
     print(f"{objthex[i][0]}: {objthex[i][1]}")
