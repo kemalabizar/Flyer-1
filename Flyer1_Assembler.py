@@ -42,7 +42,8 @@ def deletecomments(source_string):
     no_comments = ''
     for i in range(0, len(source_string)):
         if '//' in source_string[i]:
-            no_comments += (source_string[i][0:source_string[i].index('//')] + '\n')
+            idx_cmt = source_string[i].index('//')
+            no_comments += (source_string[i][0:idx_cmt] + '\n')
         else:
             no_comments += (source_string[i] + '\n')
     return no_comments
@@ -52,7 +53,7 @@ def tokenize(source_string):
     # e.g. this string, 'and x,y\nsta z\ncmp z,n'
     # the tokenized version is below
     # ['and', 'x,y', 'sta', 'z', 'cmp', 'z,n']
-    tokenized = re.split(" |, |\{|\}|\n|\t", source_string)
+    tokenized = re.split(r" |, |\{|\}|\n|\t", source_string)
     while '' in tokenized: tokenized.remove('')
     return tokenized
 
@@ -61,9 +62,9 @@ def readvariables(source_tokens):
     # format: {variable_name:[variable_value, variable_address]}
     idx_stat, idx_dyn, idx_text = 0, 0, 0
     for i in range(0, len(source_tokens)):
-        if source_tokens[i] == 'stat': idx_stat = i
-        elif source_tokens[i] == 'var': idx_dyn = i
-        elif source_tokens[i] == 'text': idx_text = i
+        if source_tokens[i] == '.stat': idx_stat = i
+        elif source_tokens[i] == '.var': idx_dyn = i
+        elif source_tokens[i] == '.text': idx_text = i
         else: pass
     ts = source_tokens[idx_stat:idx_dyn]
     td = source_tokens[idx_dyn:idx_text]
@@ -75,16 +76,14 @@ def readvariables(source_tokens):
                 if '#' in k[1]:
                     k[1] = int(k[1][1:], base=16)
                 else: pass
-                static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
             if ts[i] == 'asc':
-                char = ''
+                char = 0
                 for i in range(0, len(k[1])):
-                    char += hex(ord(k[1][i]))[2:]
-                k[1] = char
-                static[k[0]] = [k[1], addr]; addr += 1
+                    char += ord(k[1][i])*(16**(4-2*i))
+                k[1] = str(char)
             if ts[i] == 'fix':
                 k[1] = int(float(k[1])*(2**8))
-                static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+            static[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
         else: pass
     addr = 0x300000
     for i in range(0, len(td)):
@@ -94,16 +93,14 @@ def readvariables(source_tokens):
                 if '#' in k[1]:
                     k[1] = int(k[1][1:], base=16)
                 else: pass
-                dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
             if td[i] == 'asc':
-                char = ''
+                char = 0
                 for i in range(0, len(k[1])):
-                    char += hex(ord(k[1][i]))[2:]
-                k[1] = char
-                dynamic[k[0]] = [k[1], addr]; addr += 1
+                    char += ord(k[1][i])*(16**(4-2*i))
+                k[1] = str(char)
             if td[i] == 'fix':
                 k[1] = int(float(k[1])*(2**8))
-                dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
+            dynamic[k[0]] = [f"{int(k[1]):#0{8}x}"[2:], addr]; addr += 1
         else: pass
     return static, dynamic
 
@@ -111,7 +108,7 @@ def pass_1(source_tokens):
     # first pass reads the length of each loop segments (e.g. '*:')
     # outputs a dictionary, format: {loopname: start_ddress}
     # loop_start_address(n) = loop_length(n)
-    idx_text = source_tokens.index('text')
+    idx_text = source_tokens.index('.text')
     loop, code_tokens, instr_length = {}, [], 0
     tx = source_tokens[idx_text+1:]
     for i in range(0, len(tx)):
@@ -166,7 +163,7 @@ def hex_obj(machine_code, static_dict, dynamic_dict):
     return compiled
 
 # TOKENIZE Pt.1: Turn source file into string
-srcstr = sourcetostring(sys.argv[1])
+srcstr = sourcetostring('NewAssemblyTypesetTest.asm')
 # TOKENIZE Pt.2: Delete comments in string
 delcom = deletecomments(srcstr)
 # TOKENIZE Pt.3: Tokenize by words
@@ -183,13 +180,12 @@ cdtkn, loops = prog[0], prog[1]
 codehex = pass_2(cdtkn, loops, stt, var)
 objthex = hex_obj(codehex, stt, var)
 
-#print(srcstr)
-#print('\n', delcom)
-#print('\n', srctkn)
-#print('\n', stt, '\n', var)
-#print('\n', cdtkn, '\n', loops)
-#print('\n', codehex)
+print(delcom)
+print('\n', srctkn)
+print('\n', stt, '\n', var)
+print('\n', cdtkn, '\n', loops)
+print('\n', codehex)
 
-print('\nv3.0 hex words addressed')
+print('v3.0 hex words addressed')
 for i in range(0, len(objthex)):
     print(f"{objthex[i][0]}: {objthex[i][1]}")
