@@ -154,19 +154,17 @@ _Table 4. Flyer-1 control word truth table._
 
 ### General Overview
 
-The computer's assembly language follows that of computers mentioned earlier, combined with bracket nesting methods similar to C/C++/C#. The source file is divided into three sections: **stat**, containing declaration of static variables; **var**, declaration of dynamic variables; and **text** that contains all instructions necessary to work with said variables before. These sections are separated by brackets as shown below. Current version can only support single-line comments, that begin with ```//``` slashes.
+The computer's assembly language follows that of computers mentioned earlier. The source file is divided into three sections: **stat**, containing declaration of static variables; **var**, declaration of dynamic variables; and **text** that contains all instructions necessary to work with said variables before. These sections are separated by brackets as shown below. Current version can only support single-line comments, that begin with ```//``` slashes.
 ```
-stat {
+.stat
   // Declaration of static variables: __type__ __name__,__value__
   // Variables declared as static (in this section) cannot, and will not, have its values manipulated by corresponding instructions during its runtime.
-}
 
-var {
+.var
   // Declaration of dynamic variables: __type__ __name__,__value__
   // As opposed to static, dynamic variables can be freely manipulated by corresponding instructions.
-}
 
-text {
+.text
   // Where one would write every instructions necessary.
 start:        // Loop 'start'
   __inst_0__  // 'start' segment must always exist within text{...}. Otherwise, any programs and loop segments you've written won't run.
@@ -181,7 +179,6 @@ bar:          // Loop 'bar'
   __inst_7__
   __inst_8__
   __inst_9__
-}
 ```
 
 ### Instruction Loops
@@ -243,18 +240,16 @@ The variables would be automatically placed into memory locations based on their
 // This program counts Fibonacci numbers, a(N) = a(N-1) + a(N-2), from 0. (0, 1, 1, 2, 3, 5, 8, 13, ...)
 // The upper limit for this Fibonacci calculation is 100000, stated as lit_0.
 
-stat {
+.stat
   int lit_0,100000    // lit_0: literal 0, int, 100000 decimal
   asc lit_1,Hw!       // lit_1: literal 1, asc, 'Hw!'
-}
 
-var {
+.var
   int x,0    // x = 0 decimal
   int y,0    // y = 1 decimal
   int z,0    // z = 0 decimal
-}
 
-text {
+.text
 start:
   dop x,01       // Output x to port digital 01
   add x,y        // AX = x + y
@@ -268,7 +263,6 @@ end:
   dop lit_1,01   // Output lit_1 ('Hw!') to port digital 01
   dop x,02       // Output x to port digital 02
   hlt            // Halt
-}
 ```
 
 ### How Do I Run The Program?
