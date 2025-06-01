@@ -163,7 +163,7 @@ def hex_obj(machine_code, static_dict, dynamic_dict):
     return compiled
 
 # TOKENIZE Pt.1: Turn source file into string
-srcstr = sourcetostring('NewAssemblyTypesetTest.asm')
+srcstr = sourcetostring(sys.argv[1])
 # TOKENIZE Pt.2: Delete comments in string
 delcom = deletecomments(srcstr)
 # TOKENIZE Pt.3: Tokenize by words
