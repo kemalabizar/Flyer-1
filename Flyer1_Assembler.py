@@ -41,8 +41,8 @@ def deletecomments(source_string):
     source_string = re.split("\n", source_string)
     no_comments = ''
     for i in range(0, len(source_string)):
-        if '//' in source_string[i]:
-            idx_cmt = source_string[i].index('//')
+        if ';' in source_string[i]:
+            idx_cmt = source_string[i].index(';')
             no_comments += (source_string[i][0:idx_cmt] + '\n')
         else:
             no_comments += (source_string[i] + '\n')
@@ -62,9 +62,9 @@ def readvariables(source_tokens):
     # format: {variable_name:[variable_value, variable_address]}
     idx_stat, idx_dyn, idx_text = 0, 0, 0
     for i in range(0, len(source_tokens)):
-        if source_tokens[i] == '.stat': idx_stat = i
-        elif source_tokens[i] == '.var': idx_dyn = i
-        elif source_tokens[i] == '.text': idx_text = i
+        if source_tokens[i] == '.stat:': idx_stat = i
+        elif source_tokens[i] == '.var:': idx_dyn = i
+        elif source_tokens[i] == '.text:': idx_text = i
         else: pass
     ts = source_tokens[idx_stat:idx_dyn]
     td = source_tokens[idx_dyn:idx_text]
@@ -108,7 +108,7 @@ def pass_1(source_tokens):
     # first pass reads the length of each loop segments (e.g. '*:')
     # outputs a dictionary, format: {loopname: start_ddress}
     # loop_start_address(n) = loop_length(n)
-    idx_text = source_tokens.index('.text')
+    idx_text = source_tokens.index('.text:')
     loop, code_tokens, instr_length = {}, [], 0
     tx = source_tokens[idx_text+1:]
     for i in range(0, len(tx)):
