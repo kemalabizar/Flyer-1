@@ -154,28 +154,28 @@ _Table 4. Flyer-1 control word truth table._
 
 ### General Overview
 
-The computer's assembly language follows that of computers mentioned earlier. The source file is divided into three sections: **stat**, containing declaration of static variables; **var**, declaration of dynamic variables; and **text** that contains all instructions necessary to work with said variables before. These sections are separated by brackets as shown below. Current version can only support single-line comments, that begin with ```//``` slashes.
+The computer's assembly language follows that of computers mentioned earlier. The source file is divided into three sections: **stat**, containing declaration of static variables; **var**, declaration of dynamic variables; and **text** that contains all instructions necessary to work with said variables before. These sections are separated by brackets as shown below. Current version can only support single-line comments, that begin with ```;``` semicolon.
 ```
 .stat
-  // Declaration of static variables: __type__ __name__,__value__
-  // Variables declared as static (in this section) cannot, and will not, have its values manipulated by corresponding instructions during its runtime.
+  ; Declaration of static variables: __type__ __name__,__value__
+  ; Variables declared as static (in this section) cannot, and will not, have its values manipulated by corresponding instructions during its runtime.
 
 .var
-  // Declaration of dynamic variables: __type__ __name__,__value__
-  // As opposed to static, dynamic variables can be freely manipulated by corresponding instructions.
+  ; Declaration of dynamic variables: __type__ __name__,__value__
+  ; As opposed to static, dynamic variables can be freely manipulated by corresponding instructions.
 
 .text
-  // Where one would write every instructions necessary.
-start:        // Loop 'start'
-  __inst_0__  // 'start' segment must always exist within text{...}. Otherwise, any programs and loop segments you've written won't run.
-  __inst_1__  // This is because 'start' segment provides a starting point of program execution for the processor.
+  ; Where one would write every instructions necessary.
+start:        ; Loop 'start'
+  __inst_0__  ; 'start' segment must always exist within text{...}. Otherwise, any programs and loop segments you've written won't run.
+  __inst_1__  ; This is because 'start' segment provides a starting point of program execution for the processor.
   __inst_2__
   __inst_3__
-foo:          // Loop 'foo'
+foo:          ; Loop 'foo'
   __inst_4__
   __inst_5__
   __inst_6__
-bar:          // Loop 'bar'
+bar:          ; Loop 'bar'
   __inst_7__
   __inst_8__
   __inst_9__
@@ -191,28 +191,30 @@ foo:
   __inst_0__
   __inst_1__
   ...
-  jeq bar      // Jump if A=B to bar
-  jal foo      // Jump if A>B to foo
-  jmp baz      // Jump to baz
+  jeq bar      ; Jump if A=B to bar
+  jal foo      ; Jump if A>B to foo
+  jmp baz      ; Jump to baz
 bar:
   __inst_2__
   __inst_3__
   ...
   jzr foo      .. Jump if A=0 to foo
-  jmp qux      // Jump to qux
+  jmp qux      ; Jump to qux
 baz:
   __inst_4__
   __inst_5__
   ...
-  jcb bar      // Jump if Carry or Borrow to bar
-  jmp qux      // Jump to qux
+  jcb bar      ; Jump if Carry or Borrow to bar
+  jmp qux      ; Jump to qux
 qux:
   __inst_6__
   __inst_7__
   ...
-  jpe foo       // Jump if A Even to foo
+  jpe foo       ; Jump if A Even to foo
   hlt
 ```
+
+However, if one wishes to write simple programs without any loops, one can just directly type the code after `.start:` segment.
 
 ### Variable Declarations
 
@@ -220,16 +222,16 @@ As previously mentioned in the **Instruction Set Architecture** chapter, there a
 
 To declare **int** variables, one can follow either format below,
 ```
-int a,#33ae4c       // #NUMBER --> NUMBER is declared as Hex, and are now the value of 'a'
-int b,314285        // NUMBER --> NUMBER is declared as Dec, and are now the value of 'a'
+int a,#33ae4c       ; #NUMBER --> NUMBER is declared as Hex, and are now the value of 'a'
+int b,314285        ; NUMBER --> NUMBER is declared as Dec, and are now the value of 'a'
 ```
 To declare **fix** variables, one must adhere to the format below,
 ```
-fix c,2.71828       // Just directly type the number with points as decimal fractions.
+fix c,2.71828       ; Just directly type the number with points as decimal fractions.
 ```
 To declare **asc** variables, this format must be used,
 ```
-asc d,wt?           // Just directly type any keyboard character, as long as it's just 3 chars long.
+asc d,wt?           ; Just directly type any keyboard character, as long as it's just 3 chars long.
 ```
 
 The variables would be automatically placed into memory locations based on their type (static or dynamic), where the first declared variable gets first place, and so on. Since the address of each variables are only shown in the assembled (hex memory maps) file, one has no method to obtain specific locations of each and every variable unless directly modifying the assembled hex file. For this, one only have to write the involved variable's name as operands, where it represents (or acts as a pointer towards) the variable's location.
@@ -237,32 +239,32 @@ The variables would be automatically placed into memory locations based on their
 ### Example Program: Fibonacci
 
 ```
-// This program counts Fibonacci numbers, a(N) = a(N-1) + a(N-2), from 0. (0, 1, 1, 2, 3, 5, 8, 13, ...)
-// The upper limit for this Fibonacci calculation is 100000, stated as lit_0.
+; This program counts Fibonacci numbers, a(N) = a(N-1) + a(N-2), from 0. (0, 1, 1, 2, 3, 5, 8, 13, ...)
+; The upper limit for this Fibonacci calculation is 100000, stated as lit_0.
 
 .stat
-  int lit_0,100000    // lit_0: literal 0, int, 100000 decimal
-  asc lit_1,Hw!       // lit_1: literal 1, asc, 'Hw!'
+  int lit_0,100000    ; lit_0: literal 0, int, 100000 decimal
+  asc lit_1,Hw!       ; lit_1: literal 1, asc, 'Hw!'
 
 .var
-  int x,0    // x = 0 decimal
-  int y,0    // y = 1 decimal
-  int z,0    // z = 0 decimal
+  int x,0    ; x = 0 decimal
+  int y,0    ; y = 1 decimal
+  int z,0    ; z = 0 decimal
 
 .text
 start:
-  dop x,01       // Output x to port digital 01
-  add x,y        // AX = x + y
-  sta z          // z = AX; hence z = x + y
-  trx y,x        // x = y
-  trx z,y        // y = z
-  cmp x,lit_0    // Compare x against lit_0 (100000 decimal)
-  jna start      // Jump if not A>B to start
-  jmp end        // Jump to end if previous instruction isn't fulfilled
+  dop x,01       ; Output x to port digital 01
+  add x,y        ; AX = x + y
+  sta z          ; z = AX; hence z = x + y
+  trx y,x        ; x = y
+  trx z,y        ; y = z
+  cmp x,lit_0    ; Compare x against lit_0 (100000 decimal)
+  jna start      ; Jump if not A>B to start
+  jmp end        ; Jump to end if previous instruction isn't fulfilled
 end:
-  dop lit_1,01   // Output lit_1 ('Hw!') to port digital 01
-  dop x,02       // Output x to port digital 02
-  hlt            // Halt
+  dop lit_1,01   ; Output lit_1 ('Hw!') to port digital 01
+  dop x,02       ; Output x to port digital 02
+  hlt            ; Halt
 ```
 
 ### How Do I Run The Program?
